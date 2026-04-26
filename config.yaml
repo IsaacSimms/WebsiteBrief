@@ -1,0 +1,73 @@
+# == config.yaml == #
+# Central configuration for the WebsiteBrief pipeline.
+#
+# To swap scrapers:  change scrapers.active and fill in that scraper's block.
+# To swap AI model:  change llm.providers.claude.model.
+# To swap AI provider: change llm.provider and add a matching providers block.
+# NEVER put secrets here — use the .env file for API keys and passwords.
+
+
+# ── Scraper Configuration ──────────────────────────────────────────────────────
+scrapers:
+
+  # Which scraper to use. Must match a key in this block.
+  # Options: d2l
+  active: d2l
+
+  d2l:
+    # Full URL to your institution's D2L login page.
+    # Example: https://learn.myuniversity.edu/d2l/login
+    login_url: "https://YOUR_INSTITUTION.brightspace.com/d2l/login"
+
+    # Name of the environment variable that holds your D2L username.
+    # The actual username goes in .env, not here.
+    username_env: D2L_USERNAME
+
+    # Seconds to wait for you to complete login + MFA before cancelling.
+    # You can also close the browser window at any time to cancel immediately.
+    login_timeout_seconds: 300
+
+    # CSS selectors for finding data on D2L pages.
+    # ACTION REQUIRED before your first run:
+    #   1. Open your D2L in Chrome
+    #   2. Press F12 → Elements tab
+    #   3. Find the course links, assignment rows, and announcement area
+    #   4. Update the selectors below to match what you see
+    #   Changing these never requires editing Python files.
+    selectors:
+      course_links:          'a[href*="/d2l/home/"]'
+      assignment_rows:       'table tr'
+      assignment_title_cell: 0        # column index (0 = first column)
+      assignment_due_cell:   1        # column index
+      assignment_status_cell: 2       # column index
+      announcement_widget:   '[class*="news"], [class*="announcement"]'
+
+
+# ── LLM (AI) Configuration ────────────────────────────────────────────────────
+llm:
+
+  # Which AI provider to use. Must match a key under providers below.
+  # Options: claude
+  provider: claude
+
+  providers:
+
+    claude:
+      # Model options (cheapest to most capable):
+      #   claude-haiku-4-5-20251001   — recommended; fast and cheap, good for summaries
+      #   claude-sonnet-4-6           — better reasoning, ~6x more expensive
+      #   claude-opus-4-7             — best quality, ~20x more expensive
+      model: claude-haiku-4-5-20251001
+
+      # Maximum tokens in the generated brief. 2048 is enough for 5-6 courses.
+      max_tokens: 2048
+
+
+# ── Output Configuration ──────────────────────────────────────────────────────
+output:
+  # Save the full prompt + response as a JSON file for debugging.
+  # Set to false to skip (saves disk space on scheduled runs).
+  save_conversations: true
+
+  # Delete brief .md files older than this many days each run.
+  brief_retention_days: 30

@@ -1,0 +1,38 @@
+# == .gitignore == #
+
+# ── Secrets — NEVER commit these ─────────────────────────────────────
+.env
+
+# ── Python virtual environment ───────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Python bytecode cache ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# ── Generated outputs — usually too large / personal to commit ────────
+outputs/briefs/
+outputs/conversations/
+outputs/logs/
+
+# ── Playwright browser binaries — large, auto-downloaded by setup.ps1 ─
+.playwright/
+
+# ── pytest cache ──────────────────────────────────────────────────────
+.pytest_cache/
+.cache/
+
+# ── OS-generated files ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── IDE project files ─────────────────────────────────────────────────
+.vscode/
+.idea/
+*.code-workspace
