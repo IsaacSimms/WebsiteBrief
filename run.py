@@ -68,7 +68,7 @@ def setup_logging(verbose: bool = False) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="python run.py",
-        description="WebsiteBrief — scrape LMS data and generate a weekly AI brief.",
+        description="WebsiteBrief — scrape web data and generate a weekly AI brief.",
     )
     parser.add_argument(
         "--dry-run",
@@ -229,49 +229,49 @@ def build_llm_client(cfg: dict):
 
 # == Prompt Formatting == #
 
-def format_prompt(courses: list, cfg: dict) -> str:
+def format_prompt(sources: list, cfg: dict) -> str:
     # == format_prompt == #
-    # Converts WeeklyCourseData objects into a plain-text prompt for the AI.
-    # Applies the 7-day filter here — the AI only sees what's due within a week.
-    # Assignments with no due date are included (we can't filter what we don't know).
+    # Converts ScrapeResult objects into a plain-text prompt for the AI.
+    # Applies the 7-day filter here — the AI only sees items within the next week.
+    # Items with no event_date are always included (can't filter what we don't know).
 
     from core.date_utils import is_within_days
 
     lines = [
-        "Generate a weekly brief for the following course data.",
+        "Generate a weekly brief for the following scraped data.",
         f"Data collected at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
         "",
     ]
 
-    for course in courses:
-        lines.append(f"COURSE: {course.course_name}")
-        lines.append(f"Scraper: {course.scraper_name}")
+    for source in sources:
+        lines.append(f"SOURCE: {source.source_name}")
+        lines.append(f"Scraper: {source.scraper_name}")
 
-        # Filter to the 7-day window.
+        # Filter to the 7-day window; keep items with no event_date.
         upcoming = [
-            a for a in course.assignments
-            if is_within_days(a.due_date, days=7) or a.due_date is None
+            item for item in source.results
+            if is_within_days(item.event_date, days=7) or item.event_date is None
         ]
 
         if upcoming:
-            lines.append(f"Assignments ({len(upcoming)} within 7 days or no due date):")
-            for a in upcoming:
-                due_str    = a.due_date.strftime("%Y-%m-%d %H:%M UTC") if a.due_date else "No due date"
-                status_str = f" [{a.status}]" if a.status else ""
-                pts_str    = f" ({a.points} pts)" if a.points is not None else ""
-                lines.append(f"  - {a.title}{status_str}{pts_str} — Due: {due_str}")
+            lines.append(f"Items ({len(upcoming)} within 7 days or no date):")
+            for item in upcoming:
+                date_str   = item.event_date.strftime("%Y-%m-%d %H:%M UTC") if item.event_date else "No date"
+                status_str = f" [{item.status}]" if item.status else ""
+                meta_str   = (" [" + ", ".join(f"{k}: {v}" for k, v in item.metadata.items()) + "]") if item.metadata else ""
+                lines.append(f"  - {item.title}{status_str}{meta_str} — Date: {date_str}")
         else:
-            lines.append("Assignments: None due in the next 7 days.")
+            lines.append("Items: None in the next 7 days.")
 
-        if course.announcements:
-            lines.append("Announcements:")
-            for ann in course.announcements:
-                lines.append(f"  - {ann}")
+        if source.highlights:
+            lines.append("Highlights:")
+            for h in source.highlights:
+                lines.append(f"  - {h}")
 
-        if course.raw_notes:
-            lines.append(f"Notes: {course.raw_notes}")
+        if source.raw_notes:
+            lines.append(f"Notes: {source.raw_notes}")
 
-        lines.append("")    # blank line between courses
+        lines.append("")    # blank line between sources
 
     return "\n".join(lines)
 
@@ -314,7 +314,7 @@ def main() -> None:
 
     try:
         with scraper:
-            courses = scraper.scrape()
+            sources = scraper.scrape()
     except LoginCancelledError as exc:
         log.warning("Login cancelled: %s", exc)
         print("\nRun cancelled — no brief was generated.")
@@ -326,12 +326,12 @@ def main() -> None:
         log.info("Interrupted by user.")
         sys.exit(0)
 
-    if not courses:
-        log.warning("Scraper returned no course data. Nothing to brief.")
+    if not sources:
+        log.warning("Scraper returned no data. Nothing to brief.")
         sys.exit(0)
 
-    log.info("[Step 2] Scraped %d course(s). Building prompt...", len(courses))
-    prompt = format_prompt(courses, cfg)
+    log.info("[Step 2] Scraped %d source(s). Building prompt...", len(sources))
+    prompt = format_prompt(sources, cfg)
 
     # -- Dry run stops here -- #
     if args.dry_run:

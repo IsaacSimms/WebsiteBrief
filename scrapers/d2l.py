@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from playwright.sync_api import sync_playwright, Page, Browser, BrowserContext
 
 from scrapers.base import BaseScraper, ScraperError, LoginCancelledError
-from core.models import Assignment, WeeklyCourseData
+from core.models import DataItem, ScrapeResult
 from core.date_utils import parse_date
 
 log = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class D2LScraper(BaseScraper):
 
     # == Public interface == #
 
-    def scrape(self) -> list[WeeklyCourseData]:
+    def scrape(self) -> list[ScrapeResult]:
         self._start_browser()
         self._login()
         return self._scrape_all_courses()
@@ -180,7 +180,7 @@ class D2LScraper(BaseScraper):
 
     # == Private: scraping == #
 
-    def _scrape_all_courses(self) -> list[WeeklyCourseData]:
+    def _scrape_all_courses(self) -> list[ScrapeResult]:
         selectors = self.config.get("selectors", {})
         course_link_selector = selectors.get("course_links", 'a[href*="/d2l/home/"]')
 
@@ -215,7 +215,7 @@ class D2LScraper(BaseScraper):
             )
             return []
 
-        results: list[WeeklyCourseData] = []
+        scrape_results: list[ScrapeResult] = []
         seen_urls: set[str] = set()
 
         log.info("Found %d potential course link(s). Filtering and scraping...", len(course_links))
@@ -229,40 +229,40 @@ class D2LScraper(BaseScraper):
                 continue
             seen_urls.add(url)
 
-            log.info("  Scraping course: %s", name)
+            log.info("  Scraping: %s", name)
             try:
-                course_data = self._scrape_one_course(url, name)
-                results.append(course_data)
+                source_data = self._scrape_one_course(url, name)
+                scrape_results.append(source_data)
             except LoginCancelledError:
                 raise    # propagate cancel signals immediately
             except Exception as exc:
                 # Log the failure but continue with the remaining courses.
                 log.warning("  Could not scrape '%s': %s", name, exc)
 
-        log.info("Scraping complete. %d course(s) collected.", len(results))
-        return results
+        log.info("Scraping complete. %d source(s) collected.", len(scrape_results))
+        return scrape_results
 
-    def _scrape_one_course(self, course_url: str, course_name: str) -> WeeklyCourseData:
+    def _scrape_one_course(self, course_url: str, course_name: str) -> ScrapeResult:
         self._page.goto(course_url, timeout=20_000)
         self._page.wait_for_load_state("networkidle", timeout=20_000)
         scraped_at = datetime.now(timezone.utc)
 
-        assignments  = self._scrape_assignments(course_url)
-        announcements = self._scrape_announcements()
+        items      = self._scrape_assignments(course_url)
+        highlights = self._scrape_highlights()
 
-        return WeeklyCourseData(
-            course_name=course_name,
+        return ScrapeResult(
+            source_name=course_name,
             scraped_at=scraped_at,
-            assignments=assignments,
-            announcements=announcements,
+            results=items,
+            highlights=highlights,
             scraper_name="d2l",
         )
 
-    def _scrape_assignments(self, course_url: str) -> list[Assignment]:
-        selectors = self.config.get("selectors", {})
-        row_sel   = selectors.get("assignment_rows", "table tr")
-        title_col = int(selectors.get("assignment_title_cell", 0))
-        due_col   = int(selectors.get("assignment_due_cell",   1))
+    def _scrape_assignments(self, course_url: str) -> list[DataItem]:
+        selectors  = self.config.get("selectors", {})
+        row_sel    = selectors.get("assignment_rows", "table tr")
+        title_col  = int(selectors.get("assignment_title_cell",  0))
+        due_col    = int(selectors.get("assignment_due_cell",    1))
         status_col = int(selectors.get("assignment_status_cell", 2))
 
         # Navigate to the assignments/dropbox page for this course.
@@ -271,7 +271,7 @@ class D2LScraper(BaseScraper):
             log.debug("Could not extract org unit ID from %s", course_url)
             return []
 
-        base_url       = self._extract_base_url(self._page.url)
+        base_url        = self._extract_base_url(self._page.url)
         assignments_url = f"{base_url}/d2l/lms/dropbox/user/folders_list.d2l?ou={org_unit_id}"
 
         try:
@@ -300,22 +300,22 @@ class D2LScraper(BaseScraper):
             log.warning("Could not read assignment rows: %s", exc)
             return []
 
-        assignments: list[Assignment] = []
+        items: list[DataItem] = []
         for row in rows:
             if not row:
                 continue
-            assignments.append(Assignment(
+            items.append(DataItem(
                 title=row["title"],
-                due_date=parse_date(row.get("due", "")),
+                event_date=parse_date(row.get("due", "")),
                 status=row.get("status") or None,
             ))
 
-        log.debug("  Found %d assignment(s) in dropbox.", len(assignments))
-        return assignments
+        log.debug("  Found %d item(s) in dropbox.", len(items))
+        return items
 
-    def _scrape_announcements(self) -> list[str]:
-        selectors        = self.config.get("selectors", {})
-        announce_sel     = selectors.get(
+    def _scrape_highlights(self) -> list[str]:
+        selectors    = self.config.get("selectors", {})
+        announce_sel = selectors.get(
             "announcement_widget",
             '[class*="news"], [class*="announcement"]',
         )
@@ -324,11 +324,11 @@ class D2LScraper(BaseScraper):
                 announce_sel,
                 "els => els.map(el => el.innerText.trim()).filter(t => t.length > 10)",
             )
-            # Truncate very long announcements to avoid bloating the prompt.
+            # Truncate very long entries to avoid bloating the prompt.
             trimmed = [t[:400] + "..." if len(t) > 400 else t for t in texts]
-            return trimmed[:5]    # at most 5 announcements per course
+            return trimmed[:5]    # at most 5 highlights per source
         except Exception as exc:
-            log.debug("Could not read announcements: %s", exc)
+            log.debug("Could not read highlights: %s", exc)
             return []
 
     # == Private: URL helpers == #

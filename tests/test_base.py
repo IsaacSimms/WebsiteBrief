@@ -5,7 +5,7 @@
 
 import pytest
 from datetime import datetime, timezone
-from core.models import WeeklyCourseData
+from core.models import ScrapeResult
 from scrapers.base import BaseScraper, ScraperError, LoginCancelledError
 from core.base_llm_client import BaseLLMClient, LLMError
 
@@ -32,7 +32,7 @@ class TestBaseScraper:
 
     def test_subclass_missing_close_cannot_be_instantiated(self):
         class MissingClose(BaseScraper):
-            def scrape(self) -> list[WeeklyCourseData]:
+            def scrape(self) -> list[ScrapeResult]:
                 return []
             # close() is intentionally missing
 
@@ -41,7 +41,7 @@ class TestBaseScraper:
 
     def test_complete_subclass_can_be_instantiated(self):
         class GoodScraper(BaseScraper):
-            def scrape(self) -> list[WeeklyCourseData]:
+            def scrape(self) -> list[ScrapeResult]:
                 return []
             def close(self) -> None:
                 pass

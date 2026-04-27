@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from core.models import WeeklyCourseData
+from core.models import ScrapeResult
 
 
 class BaseScraper(ABC):
@@ -30,8 +30,8 @@ class BaseScraper(ABC):
         self.config = config
 
     @abstractmethod
-    def scrape(self) -> list[WeeklyCourseData]:
-        # Run the full scrape and return one WeeklyCourseData per course found.
+    def scrape(self) -> list[ScrapeResult]:
+        # Run the full scrape and return one ScrapeResult per source found.
         # Must return an empty list (not raise) when nothing is found.
         ...
 

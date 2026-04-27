@@ -5,7 +5,7 @@
 #   - Default model: claude-haiku-4-5-20251001 — cheapest, fast, good for summaries.
 #   - Prompt caching on the system prompt: after the first call within a 5-minute
 #     window, Anthropic serves the system prompt from cache at ~1/10 the normal cost.
-#   - One API call for ALL courses combined — not one per course.
+#   - One API call for ALL sources combined — not one per source.
 #   - The 7-day filter in run.py trims the prompt before it gets here.
 #
 # Streaming: response chunks are printed live so you see the brief building up
@@ -22,27 +22,28 @@ from core.base_llm_client import BaseLLMClient, LLMError
 log = logging.getLogger(__name__)
 
 # == SYSTEM_PROMPT == #
-# Describes Claude's role and output format.
+# Describes Claude's role and output approach.
 # Marked for caching (cache_control: ephemeral) — Anthropic caches it for 5 minutes.
 # On the second call in a session the system prompt tokens cost ~10% of normal.
-SYSTEM_PROMPT = """You are a concise academic assistant.
+SYSTEM_PROMPT = """You are a concise assistant. You read structured data scraped from websites \
+and produce a clear, well-organized weekly brief in Markdown.
 
-Your job is to read structured course data and produce a clear weekly brief in Markdown.
+The data may come from any kind of website: a learning management system, a code repository, \
+a news site, a job board, a forum, or anything else. Choose an output structure that fits the \
+content — do not force a fixed template. The goal is a brief a person can scan in under a minute.
 
-Output format:
-1. A short summary paragraph (2-3 sentences max) at the very top.
-2. One "## Course Name" section per course.
-   - Bullet list of assignments due within the next 7 days, with due dates.
-   - Use relative language: "due tomorrow", "due in 3 days", "due Sunday".
-   - If a course has nothing due this week, say so in one sentence.
-   - "### Announcements" sub-section if there are announcements for that course.
-3. A "## This Week's Priorities" section at the end listing the 3 most urgent
-   items across all courses, in order of urgency.
+Guidelines:
+- Lead with a short summary paragraph (2-3 sentences).
+- Organize the remaining content however best serves the data.
+- One section per source, with a heading that uses the source's name.
+- Be concise. No padding, filler phrases, or restating the obvious.
+- Do not invent information not present in the data provided.
+- If a field has no value, omit it rather than writing "N/A" or "None".
 
-Rules:
-- Be concise. No padding or filler phrases.
-- Do not invent information that is not in the data provided.
-- If an assignment has no due date listed, note it as "No due date".
+Note: If the data contains dates, deadlines, or time-sensitive items — such as due dates, \
+event schedules, expiring offers, or publication timestamps — treat urgency as the primary \
+organizing principle. Surface the most time-sensitive items prominently and use relative \
+language where helpful ("due tomorrow", "in 3 days", "this Sunday").
 """
 
 
