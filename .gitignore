@@ -3,6 +3,10 @@
 # ── Secrets — NEVER commit these ─────────────────────────────────────
 .env
 
+# ── Local config — contains institution-specific URLs, ignored intentionally ──
+# config.example.yaml is committed as the blank template.
+config.yaml
+
 # ── Python virtual environment ───────────────────────────────────────
 .venv/
 venv/
@@ -36,3 +40,5 @@ Desktop.ini
 .vscode/
 .idea/
 *.code-workspace
+config.yaml
+config.yaml
