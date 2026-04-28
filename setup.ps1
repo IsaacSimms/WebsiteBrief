@@ -9,7 +9,6 @@
 #   4. Playwright browser (Chromium)
 #   5. Output directories
 #   6. .env file from template
-#   7. Pre-commit hook (blocks accidental API key commits)
 
 $ErrorActionPreference = "Stop"   # stop the script on any error
 
@@ -56,7 +55,7 @@ Write-Host "  --> Done."
 
 # == 5. Output Directories == #
 # -Force means "don't fail if they already exist".
-Write-Host "`n[5/7] Creating output directories..."
+Write-Host "`n[5/6] Creating output directories..."
 New-Item -ItemType Directory -Force -Path "outputs\briefs"        | Out-Null
 New-Item -ItemType Directory -Force -Path "outputs\conversations" | Out-Null
 New-Item -ItemType Directory -Force -Path "outputs\logs"          | Out-Null
@@ -65,7 +64,7 @@ Write-Host "  --> outputs/briefs, outputs/conversations, outputs/logs created."
 # == 6. Environment File == #
 # .env holds your secret API keys. It must never be committed to Git.
 # .env.example is the safe template that IS committed.
-Write-Host "`n[6/7] Setting up .env file..."
+Write-Host "`n[6/6] Setting up .env file..."
 if (-Not (Test-Path ".env")) {
     Copy-Item ".env.example" ".env"
     Write-Host "  --> .env created from .env.example."
@@ -73,29 +72,6 @@ if (-Not (Test-Path ".env")) {
 } else {
     Write-Host "  --> .env already exists. Skipping."
 }
-
-# == 7. Pre-commit Safety Hook == #
-# This hook runs every time you do `git commit`. If any staged file contains
-# an Anthropic API key (starts with sk-ant-), the commit is rejected.
-# This is a safety net so you never accidentally publish your key.
-Write-Host "`n[7/7] Installing pre-commit safety hook..."
-
-$hookContent = @'
-#!/bin/sh
-# WebsiteBrief pre-commit hook — blocks accidental API key commits.
-if git diff --cached | grep -qE "ANTHROPIC_API_KEY=sk-ant-"; then
-    echo ""
-    echo "ERROR: Commit rejected — an Anthropic API key was found in staged changes."
-    echo "  Remove the key from the file and store secrets in .env instead."
-    echo ""
-    exit 1
-fi
-'@
-
-# Write with Unix line endings (LF only) — Git's hook runner uses sh, not PowerShell.
-$hookPath = Join-Path $PWD ".git\hooks\pre-commit"
-[System.IO.File]::WriteAllText($hookPath, $hookContent.Replace("`r`n", "`n"))
-Write-Host "  --> Pre-commit hook installed at .git/hooks/pre-commit."
 
 # == Done == #
 Write-Host ""
@@ -105,11 +81,26 @@ Write-Host "========================================"
 Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. Open .env and add your ANTHROPIC_API_KEY"
-Write-Host "  2. Open config.yaml and set your D2L login_url"
+Write-Host "  2. Open config.yaml and configure your target website:"
+Write-Host "       scrapers.active: <your_scraper_name>"
+Write-Host ""
+Write-Host "  --- To add a scraper for a new website ---"
+Write-Host "  a. Create scrapers\<name>.py and subclass BaseScraper:"
+Write-Host "       class MyScraper(BaseScraper):"
+Write-Host "           requires_auth = False  # True if login is needed"
+Write-Host "           def scrape(self) -> list[ScrapeResult]: ..."
+Write-Host "  b. Add a config block in config.yaml:"
+Write-Host "       scrapers:"
+Write-Host "         active: <name>"
+Write-Host "         <name>:"
+Write-Host "           url: https://example.com"
+Write-Host "  c. Register it in run.py's build_scraper() with an elif branch"
+Write-Host "  d. Run with:  python run.py --scraper <name> --dry-run"
+Write-Host "     --dry-run shows the scraped data without calling the AI."
+Write-Host ""
 Write-Host "  3. Each time you open a new terminal, activate the venv:"
 Write-Host "       .\.venv\Scripts\Activate.ps1"
-Write-Host "  4. Run the pipeline:"
+Write-Host "  4. Run the full pipeline:"
 Write-Host "       python run.py"
-Write-Host "  5. For testing options:"
-Write-Host "       python run.py --help"
+Write-Host "  5. All options:  python run.py --help"
 Write-Host ""
