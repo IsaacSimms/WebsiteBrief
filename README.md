@@ -35,16 +35,15 @@ Every scraper returns the same `ScrapeResult` / `DataItem` schema. The AI client
 
 ## Setup (Windows)
 
-**1. Clone the repo and open a PowerShell terminal in the project folder.**
+**1. Clone the repo and open a terminal in the project folder.**
 
 **2. Run the one-time setup script:**
 
-```powershell
-powershell -ExecutionPolicy Bypass -File setup.ps1
+```cmd
+.\setup.bat
 ```
 
 This script:
-- Sets the PowerShell execution policy
 - Creates a `.venv` virtual environment
 - Installs all Python dependencies (see `requirements.txt`)
 - Downloads the Playwright Chromium browser
@@ -71,13 +70,13 @@ Set `scrapers.active` to the scraper you want to use and fill in its block. See 
 
 **5. Activate the virtual environment** (required every time you open a new terminal):
 
-```powershell
-.\.venv\Scripts\Activate.ps1
+```cmd
+.venv\Scripts\activate.bat
 ```
 
 **6. Run:**
 
-```powershell
+```cmd
 python run.py
 ```
 
