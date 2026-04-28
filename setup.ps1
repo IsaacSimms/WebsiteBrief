@@ -94,7 +94,7 @@ Write-Host "       scrapers:"
 Write-Host "         active: <name>"
 Write-Host "         <name>:"
 Write-Host "           url: https://example.com"
-Write-Host "  c. Register it in run.py's build_scraper() with an elif branch"
+Write-Host '  c. Register it in run.py''s build_scraper() with an elif branch'
 Write-Host "  d. Run with:  python run.py --scraper <name> --dry-run"
 Write-Host "     --dry-run shows the scraped data without calling the AI."
 Write-Host ""
