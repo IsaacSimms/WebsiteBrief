@@ -50,9 +50,15 @@ This script:
 - Creates `outputs/` directories
 - Copies `.env.example` → `.env`
 
-**3. Fill in your secrets:**
+**3. Set up your secrets:**
 
-Open `.env` and add your Anthropic API key:
+If the setup script did not create `.env` automatically, copy the template manually — do **not** rename it, `.env.example` should stay in the repo as a blank template for other users:
+
+```cmd
+copy .env.example .env
+```
+
+Then open `.env` and fill in your real values:
 
 ```
 ANTHROPIC_API_KEY=sk-ant-...
@@ -64,9 +70,19 @@ If you are using the D2L scraper, also add:
 D2L_USERNAME=your_username_here
 ```
 
+> **`.env` will never be committed.** It is listed in `.gitignore` — Git ignores it entirely. `.env.example` is committed instead; it contains only placeholder values and no real secrets.
+
 **4. Configure your scraper in `config.yaml`:**
 
-Set `scrapers.active` to the scraper you want to use and fill in its block. See the per-scraper sections below.
+If the setup script did not create `config.yaml` automatically, copy the template — do **not** rename it, `config.example.yaml` should stay in the repo as the blank template:
+
+```cmd
+copy config.example.yaml config.yaml
+```
+
+`config.yaml` is git-ignored so your institution-specific URL never gets committed. Open it and set your scraper's URL and any other values. See the per-scraper sections below.
+
+> **`config.yaml` will never be committed.** It is listed in `.gitignore`. `config.example.yaml` is committed instead; it contains only placeholders.
 
 **5. Activate the virtual environment** (required every time you open a new terminal):
 

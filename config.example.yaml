@@ -1,8 +1,14 @@
-# == config.yaml == #
+# == config.example.yaml == #
 # Central configuration for the WebsiteBrief pipeline.
 #
-# To swap scrapers:  change scrapers.active and fill in that scraper's block.
-# To swap AI model:  change llm.providers.claude.model.
+# Copy this file to config.yaml and fill in your values.
+#   Windows: copy config.example.yaml config.yaml
+#
+# config.yaml is git-ignored so your institution URL stays local.
+# This example file IS committed — it contains only placeholders.
+#
+# To swap scrapers:    change scrapers.active and fill in that scraper's block.
+# To swap AI model:    change llm.providers.claude.model.
 # To swap AI provider: change llm.provider and add a matching providers block.
 # NEVER put secrets here — use the .env file for API keys and passwords.
 
@@ -17,7 +23,7 @@ scrapers:
   d2l:
     # Full URL to your institution's D2L login page.
     # Example: https://learn.myuniversity.edu/d2l/login
-    login_url: "https://ccis.ucourses.com/d2l/home"
+    login_url: "https://YOUR_INSTITUTION.brightspace.com/d2l/login"
 
     # Name of the environment variable that holds your D2L username.
     # The actual username goes in .env, not here.

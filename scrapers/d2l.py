@@ -131,6 +131,11 @@ class D2LScraper(BaseScraper):
                 f"Login timed out after {timeout_seconds} seconds — login cancelled."
             )
 
+        # Federated logins (Microsoft SSO, Shibboleth, etc.) redirect through a
+        # login-domain URL even after successful authentication. Wait for the
+        # redirect chain to settle before checking the final URL.
+        self._wait_for_redirect_to_settle()
+
         # Verify we are no longer on a login page.
         current_url = self._page.url
         if any(kw in current_url.lower() for kw in ("login", "signin", "auth")):
@@ -177,6 +182,23 @@ class D2LScraper(BaseScraper):
             elapsed += 1
 
         return "timeout"
+
+    def _wait_for_redirect_to_settle(self, max_wait: int = 30) -> None:
+        # == _wait_for_redirect_to_settle == #
+        # After the user presses Enter, federated SSO providers (Microsoft,
+        # Shibboleth, etc.) may still be mid-redirect on a login-domain URL.
+        # Poll every second until the browser lands on a non-login URL or
+        # max_wait seconds elapse. Caller's URL check handles the timeout case.
+        login_keywords = ("login", "signin", "auth", "saml", "sso")
+        for _ in range(max_wait):
+            try:
+                self._page.wait_for_load_state("networkidle", timeout=3_000)
+            except Exception:
+                pass
+            if not any(kw in self._page.url.lower() for kw in login_keywords):
+                return
+            log.debug("SSO redirect in progress, waiting... (%s)", self._page.url)
+            time.sleep(1)
 
     # == Private: scraping == #
 

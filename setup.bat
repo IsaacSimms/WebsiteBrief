@@ -9,6 +9,7 @@
 ::   3. Playwright browser (Chromium)
 ::   4. Output directories
 ::   5. .env file from template
+::   6. config.yaml from template
 
 echo.
 echo ========================================
@@ -47,7 +48,7 @@ echo   --^> Done.
 
 :: == 4. Output Directories == ::
 echo.
-echo [4/5] Creating output directories...
+echo [4/6] Creating output directories...
 if not exist outputs\briefs        mkdir outputs\briefs
 if not exist outputs\conversations mkdir outputs\conversations
 if not exist outputs\logs          mkdir outputs\logs
@@ -55,13 +56,24 @@ echo   --^> outputs/briefs, outputs/conversations, outputs/logs created.
 
 :: == 5. Environment File == ::
 echo.
-echo [5/5] Setting up .env file...
+echo [5/6] Setting up .env file...
 if not exist .env (
     copy .env.example .env ^>nul
     echo   --^> .env created from .env.example.
     echo   *** ACTION REQUIRED: Open .env and fill in your ANTHROPIC_API_KEY ***
 ) else (
     echo   --^> .env already exists. Skipping.
+)
+
+:: == 6. Config File == ::
+echo.
+echo [6/6] Setting up config.yaml...
+if not exist config.yaml (
+    copy config.example.yaml config.yaml >nul
+    echo   --^> config.yaml created from config.example.yaml.
+    echo   *** ACTION REQUIRED: Open config.yaml and set your login_url ***
+) else (
+    echo   --^> config.yaml already exists. Skipping.
 )
 
 :: == Done == ::
